@@ -49,7 +49,28 @@ myDB(async (client) => {
     res.render("index", {
       title: "Connected to Database",
       message: "Please log in",
+      showLogin: true,
     });
+  });
+
+  app
+    .route("/login")
+    .post(
+      passport.authenticate("local", { failureRedirect: "/" }),
+      (req, res) => res.redirect("/profile")
+    );
+
+  app.route("/profile").get(ensureAuthenticated, (req, res) => {
+    res.render("profile", { username: req.user.username });
+  });
+
+  app.route("/logout").get((req, res) => {
+    req.logout();
+    res.redirect("/");
+  });
+
+  app.use((req, res, next) => {
+    res.status(404).type("text").send("Not Found");
   });
 
   passport.serializeUser((user, done) => {
@@ -71,3 +92,11 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Listening on port ${PORT}`);
 });
+
+function ensureAuthenticated(req, res, next) {
+  console.log("is user authenticated", req.isAuthenticated());
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.redirect("/");
+}
