@@ -1,5 +1,6 @@
 const passport = require("passport");
 const bcrypt = require("bcrypt");
+require("dotenv").config();
 
 module.exports = function (app, myDataBase) {
   app.route("/").get((req, res) => {
@@ -16,16 +17,22 @@ module.exports = function (app, myDataBase) {
     .route("/login")
     .post(
       passport.authenticate("local", { failureRedirect: "/" }),
-      (req, res) => res.redirect("/profile")
+      (req, res) => {
+        req.session.user_id = req.user.id;
+        res.redirect("/chat");
+      },
     );
 
-  app.route("/auth/github").post(passport.authenticate("github"));
+  app.route("/auth/github").get(passport.authenticate("github"));
 
   app
     .route("/auth/github/callback")
-    .post(
+    .get(
       passport.authenticate("github", { failureRedirect: "/" }),
-      (req, res) => res.redirect("/profile")
+      (req, res) => {
+        req.session.user_id = req.user.id;
+        res.redirect("/chat");
+      },
     );
 
   app.route("/logout").get((req, res) => {
@@ -50,7 +57,7 @@ module.exports = function (app, myDataBase) {
               } else {
                 next(null, doc.ops[0]);
               }
-            }
+            },
           );
         }
       });
@@ -58,11 +65,15 @@ module.exports = function (app, myDataBase) {
     passport.authenticate("local", { failureRedirect: "/" }),
     (req, res, next) => {
       res.redirect("/profile");
-    }
+    },
   );
 
   app.route("/profile").get(ensureAuthenticated, (req, res) => {
     res.render("profile", { username: req.user.username });
+  });
+
+  app.route("/chat").get(ensureAuthenticated, (req, res) => {
+    res.render("chat", { user: req.user });
   });
 
   app.use((req, res, next) => {
